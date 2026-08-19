@@ -1,0 +1,237 @@
+@using System.Globalization
+@model AssessmentResult
+
+@{
+    ViewData["Title"] = "Assessment Result";
+
+    var categories = new[]
+    {
+        new { Name = "Winning Concept", Result = Model.WinningConcept },
+        new { Name = "Winning Team", Result = Model.WinningTeam },
+        new { Name = "Winning System", Result = Model.WinningSystem },
+        new { Name = "Performance", Result = Model.Performance }
+    };
+}
+
+@functions {
+    private static string FormatScore(decimal score)
+    {
+        return score.ToString("0.00", CultureInfo.InvariantCulture);
+    }
+
+    private static string GetScoreLabel(decimal score)
+    {
+        return score switch
+        {
+            >= 4.50m => "Excellent",
+            >= 3.75m => "Good",
+            >= 3.00m => "Fair",
+            >= 2.00m => "Needs Improvement",
+            _ => "Poor"
+        };
+    }
+
+    private static string GetStatusClass(string? status)
+    {
+        return status?.Trim().ToUpperInvariant() switch
+        {
+            "PASS" => "status-pass",
+            "PARTIAL" => "status-partial",
+            "FAIL" => "status-fail",
+            "NOT_FOUND" => "status-not-found",
+            _ => "status-unknown"
+        };
+    }
+
+    private static string GetStatusSymbol(string? status)
+    {
+        return status?.Trim().ToUpperInvariant() switch
+        {
+            "PASS" => "&#10003;",
+            "PARTIAL" => "&#9888;",
+            "FAIL" => "&#10005;",
+            "NOT_FOUND" => "&#8212;",
+            _ => "&#8226;"
+        };
+    }
+}
+
+<div class="assessment-result">
+    <header class="result-heading">
+        <div>
+            <p class="result-eyebrow">AI 3W1P / ASSESSMENT RESULT</p>
+            <h1>Document assessment</h1>
+            <p class="document-name">@Model.DocumentName</p>
+        </div>
+        <a class="new-assessment-link" asp-controller="Home" asp-action="Index">New assessment <span aria-hidden="true">&#8599;</span></a>
+    </header>
+
+    <section class="result-overview" aria-label="Assessment overview">
+        <article class="score-card">
+            <p class="result-card-label">AI SCORE</p>
+            <div class="overall-score">@FormatScore(Model.OverallScore)</div>
+            <p class="score-max">/ 5.00</p>
+            <span class="score-label">@GetScoreLabel(Model.OverallScore)</span>
+        </article>
+        <article class="summary-card">
+            <p class="result-card-label">RINGKASAN DOKUMEN</p>
+            <p class="summary-text">@Model.Summary</p>
+        </article>
+    </section>
+
+    <section class="assessment-section" aria-labelledby="assessment-table-title">
+        <div class="section-heading-row">
+            <div>
+                <p class="result-eyebrow">FRAMEWORK REVIEW</p>
+                <h2 id="assessment-table-title">3W1P assessment</h2>
+            </div>
+            <p class="section-supporting-text">Evidence-based findings from the uploaded document.</p>
+        </div>
+
+        <div class="assessment-table-wrap">
+            <table class="assessment-table">
+                <thead>
+                    <tr>
+                        <th scope="col">3W1P</th>
+                        <th scope="col">Score</th>
+                        <th scope="col">Hasil Pemeriksaan AI</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var category in categories)
+                    {
+                        <tr>
+                            <th scope="row">@category.Name</th>
+                            <td class="table-score">@FormatScore(category.Result.Score)<span>/ 5.00</span></td>
+                            <td>
+                                @if (category.Result.Checklist.Count == 0)
+                                {
+                                    <span class="muted-result">No checklist result returned.</span>
+                                }
+                                else
+                                {
+                                    <ul class="checklist-summary">
+                                        @foreach (var item in category.Result.Checklist)
+                                        {
+                                            <li class="@GetStatusClass(item.Status)">
+                                                <span class="status-symbol" aria-hidden="true">@Html.Raw(GetStatusSymbol(item.Status))</span>
+                                                <span>@item.Step - @item.Name</span>
+                                            </li>
+                                        }
+                                    </ul>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="detail-section" aria-labelledby="detail-title">
+        <div class="section-heading-row">
+            <div>
+                <p class="result-eyebrow">DOCUMENT EVIDENCE</p>
+                <h2 id="detail-title">Step-by-step detail</h2>
+            </div>
+            <p class="section-supporting-text">Expand a category to inspect the AI findings.</p>
+        </div>
+
+        <div class="result-accordions">
+            @foreach (var category in categories)
+            {
+                <details class="result-accordion">
+                    <summary>
+                        <span>@category.Name</span>
+                        <span class="accordion-score">@FormatScore(category.Result.Score) / 5.00 <span aria-hidden="true">&#43;</span></span>
+                    </summary>
+                    <div class="accordion-content">
+                        <p class="category-reason">@category.Result.Reason</p>
+                        @if (category.Result.Checklist.Count == 0)
+                        {
+                            <p class="empty-detail">No checklist detail returned.</p>
+                        }
+                        else
+                        {
+                            @foreach (var item in category.Result.Checklist)
+                            {
+                                <article class="checklist-detail">
+                                    <div class="checklist-detail-heading">
+                                        <div>
+                                            <p class="checklist-step">@item.Step</p>
+                                            <h3>@item.Name</h3>
+                                        </div>
+                                        <span class="status-badge @GetStatusClass(item.Status)">
+                                            <span aria-hidden="true">@Html.Raw(GetStatusSymbol(item.Status))</span> @item.Status
+                                        </span>
+                                    </div>
+                                    <p class="checklist-explanation">@item.Explanation</p>
+                                    <dl class="evidence-meta">
+                                        <div>
+                                            <dt>Evidence</dt>
+                                            <dd>@(string.IsNullOrWhiteSpace(item.Evidence) ? "Evidence tidak ditemukan." : item.Evidence)</dd>
+                                        </div>
+                                        <div>
+                                            <dt>Page</dt>
+                                            <dd>@(item.Page.HasValue ? item.Page.Value.ToString(CultureInfo.InvariantCulture) : "Not found")</dd>
+                                        </div>
+                                    </dl>
+                                </article>
+                            }
+                        }
+                    </div>
+                </details>
+            }
+        </div>
+    </section>
+
+    <section class="insights-grid" aria-label="Weaknesses and recommendations">
+        <article class="insight-panel weakness-panel">
+            <div class="insight-heading">
+                <span class="insight-icon" aria-hidden="true">&#9888;</span>
+                <div>
+                    <p class="result-eyebrow">WHAT NEEDS ATTENTION</p>
+                    <h2>Kekurangan</h2>
+                </div>
+            </div>
+            @foreach (var category in categories)
+            {
+                @foreach (var weakness in category.Result.Weaknesses)
+                {
+                    <div class="insight-item">
+                        <p class="insight-category">@category.Name</p>
+                        <p>@weakness</p>
+                    </div>
+                }
+            }
+            @if (categories.All(category => category.Result.Weaknesses.Count == 0))
+            {
+                <p class="empty-insight">No major weakness identified.</p>
+            }
+        </article>
+
+        <article class="insight-panel recommendation-panel">
+            <div class="insight-heading">
+                <span class="insight-icon" aria-hidden="true">&#10003;</span>
+                <div>
+                    <p class="result-eyebrow">NEXT IMPROVEMENT</p>
+                    <h2>Saran perbaikan</h2>
+                </div>
+            </div>
+            @foreach (var category in categories)
+            {
+                @foreach (var recommendation in category.Result.Recommendations)
+                {
+                    <div class="insight-item">
+                        <p class="insight-category">@category.Name</p>
+                        <p>@recommendation</p>
+                    </div>
+                }
+            }
+            @if (categories.All(category => category.Result.Recommendations.Count == 0))
+            {
+                <p class="empty-insight">Dokumen sudah memenuhi sebagian besar requirement.</p>
+            }
+        </article>
+    </section>
+</div>

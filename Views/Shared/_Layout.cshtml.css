@@ -1,0 +1,146 @@
+﻿/* Please see documentation at https://learn.microsoft.com/aspnet/core/client-side/bundling-and-minification
+for details on configuring this project to bundle and minify static web assets. */
+
+a.navbar-brand {
+  white-space: normal;
+  text-align: center;
+  word-break: break-all;
+}
+
+a {
+  color: #0077cc;
+}
+
+.btn-primary {
+  color: #fff;
+  background-color: #1b6ec2;
+  border-color: #1861ac;
+}
+
+.nav-pills .nav-link.active, .nav-pills .show > .nav-link {
+  color: #fff;
+  background-color: #1b6ec2;
+  border-color: #1861ac;
+}
+
+.border-top {
+  border-top: 1px solid #e5e5e5;
+}
+.border-bottom {
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.box-shadow {
+  box-shadow: 0 .25rem .75rem rgba(0, 0, 0, .05);
+}
+
+button.accept-policy {
+  font-size: 1rem;
+  line-height: inherit;
+}
+
+.footer {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  white-space: nowrap;
+  line-height: 60px;
+}
+.app-header {
+  border-bottom: 1px solid #dedbd3;
+  background: rgba(255, 253, 248, .94);
+}
+
+.app-nav-inner,
+.app-footer-inner {
+  display: flex;
+  max-width: 1320px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 0 auto;
+  padding: 1rem 1.25rem;
+}
+
+.app-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: .7rem;
+  color: #192326;
+  text-decoration: none;
+}
+
+.app-brand-mark {
+  display: grid;
+  width: 2.65rem;
+  height: 2.65rem;
+  place-items: center;
+  border-radius: 5px;
+  background: #365d58;
+  color: #fffdf8;
+  font-size: .62rem;
+  font-weight: 800;
+  letter-spacing: .08em;
+}
+
+.app-brand-copy {
+  display: grid;
+  gap: .1rem;
+}
+
+.app-brand-copy strong {
+  font-size: .88rem;
+  letter-spacing: .04em;
+}
+
+.app-brand-copy small {
+  color: #667171;
+  font-size: .72rem;
+}
+
+.app-nav-link {
+  color: #365d58;
+  font-size: .78rem;
+  font-weight: 750;
+  text-decoration: none;
+}
+
+.app-nav-link:hover {
+  color: #b64d3c;
+}
+
+.app-container {
+  min-height: calc(100vh - 142px);
+}
+
+.app-footer {
+  border-top: 1px solid #dedbd3;
+  color: #788181;
+  font-size: .72rem;
+}
+
+.app-footer-inner {
+  padding-top: 1.2rem;
+  padding-bottom: 1.2rem;
+}
+
+@media (max-width: 480px) {
+  .app-nav-inner,
+  .app-footer-inner {
+    padding-right: 1rem;
+    padding-left: 1rem;
+  }
+
+  .app-nav-link {
+    font-size: 0;
+  }
+
+  .app-nav-link span {
+    font-size: 1.2rem;
+  }
+
+  .app-footer-inner {
+    display: grid;
+    gap: .35rem;
+  }
+}
