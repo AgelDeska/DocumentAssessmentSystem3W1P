@@ -19,15 +19,15 @@
         return score.ToString("0.00", CultureInfo.InvariantCulture);
     }
 
-    private static string GetScoreLabel(decimal score)
+    private static string GetScoreToneClass(decimal score)
     {
         return score switch
         {
-            >= 4.50m => "Excellent",
-            >= 3.75m => "Good",
-            >= 3.00m => "Fair",
-            >= 2.00m => "Needs Improvement",
-            _ => "Poor"
+            >= 4.50m => "score-tone-excellent",
+            >= 3.75m => "score-tone-good",
+            >= 3.00m => "score-tone-fair",
+            >= 2.00m => "score-tone-needs-improvement",
+            _ => "score-tone-poor"
         };
     }
 
@@ -59,22 +59,40 @@
 <div class="assessment-result">
     <header class="result-heading">
         <div>
-            <p class="result-eyebrow">AI 3W1P / ASSESSMENT RESULT</p>
-            <h1>Document assessment</h1>
+            <p class="result-eyebrow">AI 3W1P <span>/</span> HASIL PENILAIAN</p>
+            <h1>Ringkasan Penilaian</h1>
             <p class="document-name">@Model.DocumentName</p>
         </div>
-        <a class="new-assessment-link" asp-controller="Home" asp-action="Index">New assessment <span aria-hidden="true">&#8599;</span></a>
+        <a class="new-assessment-link" asp-controller="Home" asp-action="Index">Penilaian baru <span aria-hidden="true">&#8599;</span></a>
     </header>
 
     <section class="result-overview" aria-label="Assessment overview">
-        <article class="score-card">
-            <p class="result-card-label">AI SCORE</p>
-            <div class="overall-score">@FormatScore(Model.OverallScore)</div>
-            <p class="score-max">/ 5.00</p>
-            <span class="score-label">@GetScoreLabel(Model.OverallScore)</span>
+        <article class="score-card @GetScoreToneClass(Model.OverallScore)">
+            <div class="score-card-header">
+                <p class="result-card-label">SKOR AKHIR</p>
+                <span class="score-index">01</span>
+            </div>
+            <div class="score-main">
+                <div class="score-reading">
+                    <span class="overall-score">@FormatScore(Model.OverallScore)</span>
+                    <span class="score-max">/ 5.00</span>
+                </div>
+                <span class="score-label">@Model.ScoreLabel</span>
+                <p class="score-summary">@Model.ScoreSummary</p>
+            </div>
+            <div class="score-divider" aria-hidden="true"><span style="width: @((Math.Clamp(Model.OverallScore, 0m, 5m) / 5m * 100m).ToString(CultureInfo.InvariantCulture))%"></span></div>
+            <div class="score-card-footer">
+                <div>
+                    <strong>Penilaian keseluruhan</strong>
+                    <span>Berbasis AI dan evidence dokumen</span>
+                </div>
+            </div>
         </article>
         <article class="summary-card">
-            <p class="result-card-label">RINGKASAN DOKUMEN</p>
+            <div class="summary-card-header">
+                <p class="result-card-label">RINGKASAN DOKUMEN</p>
+                <span class="summary-mark" aria-hidden="true">i</span>
+            </div>
             <p class="summary-text">@Model.Summary</p>
         </article>
     </section>
@@ -83,9 +101,9 @@
         <div class="section-heading-row">
             <div>
                 <p class="result-eyebrow">FRAMEWORK REVIEW</p>
-                <h2 id="assessment-table-title">3W1P assessment</h2>
+                <h2 id="assessment-table-title">Peta penilaian 3W1P</h2>
             </div>
-            <p class="section-supporting-text">Evidence-based findings from the uploaded document.</p>
+            <p class="section-supporting-text">Temuan berbasis evidence dari dokumen Anda.</p>
         </div>
 
         <div class="assessment-table-wrap">
@@ -93,8 +111,8 @@
                 <thead>
                     <tr>
                         <th scope="col">3W1P</th>
-                        <th scope="col">Score</th>
-                        <th scope="col">Hasil Pemeriksaan AI</th>
+                        <th scope="col">Skor</th>
+                        <th scope="col">Temuan utama</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -106,7 +124,7 @@
                             <td>
                                 @if (category.Result.Checklist.Count == 0)
                                 {
-                                    <span class="muted-result">No checklist result returned.</span>
+                                    <span class="muted-result">Belum ada checklist yang dikembalikan.</span>
                                 }
                                 else
                                 {
@@ -132,9 +150,9 @@
         <div class="section-heading-row">
             <div>
                 <p class="result-eyebrow">DOCUMENT EVIDENCE</p>
-                <h2 id="detail-title">Step-by-step detail</h2>
+                <h2 id="detail-title">Detail setiap langkah</h2>
             </div>
-            <p class="section-supporting-text">Expand a category to inspect the AI findings.</p>
+            <p class="section-supporting-text">Buka dimensi untuk melihat temuan lengkap.</p>
         </div>
 
         <div class="result-accordions">
@@ -149,7 +167,7 @@
                         <p class="category-reason">@category.Result.Reason</p>
                         @if (category.Result.Checklist.Count == 0)
                         {
-                            <p class="empty-detail">No checklist detail returned.</p>
+                            <p class="empty-detail">Belum ada detail checklist.</p>
                         }
                         else
                         {
@@ -168,12 +186,12 @@
                                     <p class="checklist-explanation">@item.Explanation</p>
                                     <dl class="evidence-meta">
                                         <div>
-                                            <dt>Evidence</dt>
-                                            <dd>@(string.IsNullOrWhiteSpace(item.Evidence) ? "Evidence tidak ditemukan." : item.Evidence)</dd>
+                                            <dt>Bukti</dt>
+                                            <dd>@(string.IsNullOrWhiteSpace(item.Evidence) ? "Bukti tidak ditemukan." : item.Evidence)</dd>
                                         </div>
                                         <div>
-                                            <dt>Page</dt>
-                                            <dd>@(item.Page.HasValue ? item.Page.Value.ToString(CultureInfo.InvariantCulture) : "Not found")</dd>
+                                            <dt>Halaman</dt>
+                                            <dd>@(item.Page.HasValue ? item.Page.Value.ToString(CultureInfo.InvariantCulture) : "Tidak ditemukan")</dd>
                                         </div>
                                     </dl>
                                 </article>
@@ -190,7 +208,7 @@
             <div class="insight-heading">
                 <span class="insight-icon" aria-hidden="true">&#9888;</span>
                 <div>
-                    <p class="result-eyebrow">WHAT NEEDS ATTENTION</p>
+                    <p class="result-eyebrow">AREA PERHATIAN</p>
                     <h2>Kekurangan</h2>
                 </div>
             </div>
@@ -206,7 +224,7 @@
             }
             @if (categories.All(category => category.Result.Weaknesses.Count == 0))
             {
-                <p class="empty-insight">No major weakness identified.</p>
+                <p class="empty-insight">Tidak ada kelemahan utama yang teridentifikasi.</p>
             }
         </article>
 
@@ -214,7 +232,7 @@
             <div class="insight-heading">
                 <span class="insight-icon" aria-hidden="true">&#10003;</span>
                 <div>
-                    <p class="result-eyebrow">NEXT IMPROVEMENT</p>
+                    <p class="result-eyebrow">LANGKAH BERIKUTNYA</p>
                     <h2>Saran perbaikan</h2>
                 </div>
             </div>
@@ -230,7 +248,7 @@
             }
             @if (categories.All(category => category.Result.Recommendations.Count == 0))
             {
-                <p class="empty-insight">Dokumen sudah memenuhi sebagian besar requirement.</p>
+                <p class="empty-insight">Dokumen sudah memenuhi sebagian besar persyaratan.</p>
             }
         </article>
     </section>

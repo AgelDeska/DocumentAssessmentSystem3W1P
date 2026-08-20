@@ -4,21 +4,21 @@
 
 <div class="assessment-home">
     <section class="assessment-intro" aria-labelledby="page-title">
-        <p class="eyebrow">AI 3W1P / DOCUMENT REVIEW</p>
-        <h1 id="page-title">AI 3W1P<br /><span>Document Assessment</span></h1>
+        <p class="eyebrow">AI 3W1P <span>/</span> REVIEW DOKUMEN</p>
+        <h1 id="page-title">Dari dokumen<br /><span>menjadi arah perbaikan.</span></h1>
         <p class="intro-copy">
-            AI-powered assessment untuk mengevaluasi dokumen project improvement
-            berdasarkan framework 3W1P.
+            Unggah dokumen project improvement Anda. AI akan memetakan evidence,
+            menilai empat dimensi 3W1P, dan menyusun temuan yang dapat ditindaklanjuti.
         </p>
     </section>
 
     <section class="upload-panel" aria-labelledby="upload-title">
         <div class="upload-panel-heading">
             <div>
-                <p class="section-kicker">START AN ASSESSMENT</p>
-                <h2 id="upload-title">Upload PDF Document</h2>
+                <p class="section-kicker">MULAI PENILAIAN</p>
+                <h2 id="upload-title">Unggah dokumen PDF</h2>
             </div>
-            <span class="file-limit">PDF only / max 20 MB</span>
+            <span class="file-limit">PDF · maksimal 20 MB</span>
         </div>
 
         <form asp-controller="Home" asp-action="Index" method="post" enctype="multipart/form-data" id="upload-form">
@@ -27,10 +27,10 @@
             <div class="drop-zone" id="drop-zone" tabindex="0" role="button" aria-controls="file-input" aria-label="Choose a PDF document">
                 <input type="file" id="file-input" name="file" accept=".pdf,application/pdf" hidden />
                 <div class="upload-icon" aria-hidden="true">PDF</div>
-                <h3>Drop your document here</h3>
-                <p>Drag and drop a project improvement PDF, or browse from your device.</p>
-                <label for="file-input" class="choose-button">Choose PDF</label>
-                <p class="drop-hint">Only PDF documents are accepted</p>
+                <h3>Letakkan dokumen di sini</h3>
+                <p>Tarik dan lepas file, atau pilih dari perangkat Anda.</p>
+                <label for="file-input" class="choose-button">Pilih dokumen</label>
+                <p class="drop-hint">Format yang didukung: PDF</p>
             </div>
 
             <div class="file-preview" id="file-preview" hidden>
@@ -38,7 +38,7 @@
                 <div class="file-details">
                     <strong id="file-name"></strong>
                     <span id="file-size"></span>
-                    <span>PDF Document</span>
+                    <span>Dokumen PDF siap dianalisis</span>
                 </div>
                 <button type="button" class="remove-file" id="remove-file" aria-label="Remove selected file">&times;</button>
             </div>
@@ -46,8 +46,8 @@
             <p class="client-error" id="upload-error" role="alert" aria-live="polite"></p>
 
             <button type="submit" class="analyze-button" id="analyze-button">
-                <span class="button-label">Analyze Document</span>
-                <span class="button-loading" hidden>Analyzing document<span class="loading-dots" aria-hidden="true">...</span></span>
+                <span class="button-label">Mulai analisis</span>
+                <span class="button-loading" hidden>Menganalisis dokumen<span class="loading-dots" aria-hidden="true">...</span></span>
                 <span class="button-arrow" aria-hidden="true">&#8594;</span>
             </button>
         </form>
@@ -55,14 +55,14 @@
         <div class="loading-panel" id="loading-panel" role="status" aria-live="polite" hidden>
             <span class="loading-mark" aria-hidden="true"></span>
             <div>
-                <strong>AI is analyzing your document</strong>
-                <p>Gemini sedang membaca seluruh dokumen dan memeriksa framework 3W1P.</p>
+                <strong>Analisis sedang berjalan</strong>
+                <p>AI sedang membaca dokumen dan memeriksa framework 3W1P.</p>
             </div>
         </div>
     </section>
 
     <section class="assessment-note" aria-label="About this assessment">
         <span class="note-mark" aria-hidden="true">i</span>
-        <p>AI 3W1P Document Assessment mengevaluasi project improvement melalui Winning Concept, Winning Team, Winning System, dan Performance.</p>
+        <p><strong>Empat sudut pandang.</strong> Winning Concept, Winning Team, Winning System, dan Performance.</p>
     </section>
 </div>

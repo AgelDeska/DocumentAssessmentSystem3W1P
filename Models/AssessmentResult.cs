@@ -4,6 +4,10 @@ public class AssessmentResult
 
     public decimal OverallScore { get; set; }
 
+    public string ScoreLabel { get; set; } = string.Empty;
+
+    public string ScoreSummary { get; set; } = string.Empty;
+
     public string Summary { get; set; } = string.Empty;
 
     public AssessmentCategory WinningConcept { get; set; } = new();
