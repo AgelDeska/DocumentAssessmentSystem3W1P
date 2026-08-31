@@ -54,12 +54,24 @@
             _ => "&#8226;"
         };
     }
+
+    private static string GetStatusLabel(string? status)
+    {
+        return status?.Trim().ToUpperInvariant() switch
+        {
+            "PASS" => "Terpenuhi",
+            "PARTIAL" => "Sebagian",
+            "FAIL" => "Tidak terpenuhi",
+            "NOT_FOUND" => "Tidak ditemukan",
+            _ => "Belum ditentukan"
+        };
+    }
 }
 
 <div class="assessment-result">
     <header class="result-heading">
         <div>
-            <p class="result-eyebrow">AI 3W1P <span>/</span> HASIL PENILAIAN</p>
+            <p class="result-eyebrow">3W1P DOCUMENT ASSESSMENT <span>/</span> HASIL PENILAIAN</p>
             <h1>Ringkasan Penilaian</h1>
             <p class="document-name">@Model.DocumentName</p>
         </div>
@@ -70,7 +82,6 @@
         <article class="score-card @GetScoreToneClass(Model.OverallScore)">
             <div class="score-card-header">
                 <p class="result-card-label">SKOR AKHIR</p>
-                <span class="score-index">01</span>
             </div>
             <div class="score-main">
                 <div class="score-reading">
@@ -83,8 +94,8 @@
             <div class="score-divider" aria-hidden="true"><span style="width: @((Math.Clamp(Model.OverallScore, 0m, 5m) / 5m * 100m).ToString(CultureInfo.InvariantCulture))%"></span></div>
             <div class="score-card-footer">
                 <div>
-                    <strong>Penilaian keseluruhan</strong>
-                    <span>Berbasis AI dan evidence dokumen</span>
+                    <strong>Gabungan Penilaian 3W1P</strong>
+                    <span>Winning Concept 30% · Winning Team 20% · Winning System 20% · Performance 30%</span>
                 </div>
             </div>
         </article>
@@ -103,7 +114,7 @@
                 <p class="result-eyebrow">FRAMEWORK REVIEW</p>
                 <h2 id="assessment-table-title">Peta penilaian 3W1P</h2>
             </div>
-            <p class="section-supporting-text">Temuan berbasis evidence dari dokumen Anda.</p>
+            <p class="section-supporting-text">Ringkasan skor kategori berdasarkan hasil pemeriksaan Step 1–9.</p>
         </div>
 
         <div class="assessment-table-wrap">
@@ -122,6 +133,7 @@
                             <th scope="row">@category.Name</th>
                             <td class="table-score">@FormatScore(category.Result.Score)<span>/ 5.00</span></td>
                             <td>
+                                <p class="category-reason-inline">@category.Result.Reason</p>
                                 @if (category.Result.Checklist.Count == 0)
                                 {
                                     <span class="muted-result">Belum ada checklist yang dikembalikan.</span>
@@ -133,7 +145,7 @@
                                         {
                                             <li class="@GetStatusClass(item.Status)">
                                                 <span class="status-symbol" aria-hidden="true">@Html.Raw(GetStatusSymbol(item.Status))</span>
-                                                <span>@item.Step - @item.Name</span>
+                                                <span>@item.Step - @item.Name <small>@GetStatusLabel(item.Status)</small></span>
                                             </li>
                                         }
                                     </ul>
@@ -150,9 +162,9 @@
         <div class="section-heading-row">
             <div>
                 <p class="result-eyebrow">DOCUMENT EVIDENCE</p>
-                <h2 id="detail-title">Detail setiap langkah</h2>
+                <h2 id="detail-title">Detail Penilaian 3W1P</h2>
             </div>
-            <p class="section-supporting-text">Buka dimensi untuk melihat temuan lengkap.</p>
+            <p class="section-supporting-text">Buka kategori untuk melihat hasil pemeriksaan Step, evidence, dan alasan penilaian.</p>
         </div>
 
         <div class="result-accordions">
@@ -180,7 +192,7 @@
                                             <h3>@item.Name</h3>
                                         </div>
                                         <span class="status-badge @GetStatusClass(item.Status)">
-                                            <span aria-hidden="true">@Html.Raw(GetStatusSymbol(item.Status))</span> @item.Status
+                                            <span aria-hidden="true">@Html.Raw(GetStatusSymbol(item.Status))</span> @GetStatusLabel(item.Status)
                                         </span>
                                     </div>
                                     <p class="checklist-explanation">@item.Explanation</p>
@@ -208,8 +220,8 @@
             <div class="insight-heading">
                 <span class="insight-icon" aria-hidden="true">&#9888;</span>
                 <div>
-                    <p class="result-eyebrow">AREA PERHATIAN</p>
-                    <h2>Kekurangan</h2>
+                    <p class="result-eyebrow">HASIL PEMERIKSAAN</p>
+                    <h2>Kekurangan yang Ditemukan</h2>
                 </div>
             </div>
             @foreach (var category in categories)
@@ -232,8 +244,8 @@
             <div class="insight-heading">
                 <span class="insight-icon" aria-hidden="true">&#10003;</span>
                 <div>
-                    <p class="result-eyebrow">LANGKAH BERIKUTNYA</p>
-                    <h2>Saran perbaikan</h2>
+                    <p class="result-eyebrow">REKOMENDASI PERBAIKAN & SARAN</p>
+                    <h2>Prioritas perbaikan serta Saran</h2>
                 </div>
             </div>
             @foreach (var category in categories)

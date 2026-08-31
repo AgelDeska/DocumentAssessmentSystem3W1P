@@ -2,6 +2,7 @@ using System.Diagnostics;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using DocumentAssessmentSystem3W1P.Models;
+using DocumentAssessmentSystem3W1P.Services;
 
 namespace DocumentAssessmentSystem3W1P.Controllers;
 
@@ -47,13 +48,30 @@ public class HomeController : Controller
 
         try
         {
-            var result = await _geminiService.AnalyzeDocumentAsync(file);
+            var requestId = HttpContext.TraceIdentifier;
+
+            _logger.LogInformation(
+                "START DOCUMENT ASSESSMENT | RequestId: {RequestId} | File: {FileName}",
+                requestId, file.FileName);
+
+            var result = await _geminiService.AnalyzeDocumentAsync(
+                file,
+                HttpContext.RequestAborted);
+
+            _logger.LogInformation(
+                "END DOCUMENT ASSESSMENT | RequestId: {RequestId} | File: {FileName}",
+                requestId,
+                file.FileName);
+
             return View("Result", result);
         }
         catch (Exception exception)
         {
             _logger.LogError(exception, "Document assessment failed.");
-            ModelState.AddModelError(string.Empty, "Dokumen gagal dianalisis. Silakan coba lagi.");
+            ModelState.AddModelError(
+                string.Empty,
+                "Dokumen gagal dianalisis. Silakan coba lagi.");
+
             return View();
         }
     }

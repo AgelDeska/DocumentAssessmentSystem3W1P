@@ -26,6 +26,8 @@ public class AssessmentResult
 
         public List<ChecklistItem> Checklist { get; set; } = [];
 
+        public List<CrossStepAssessment> CrossStepConsistency { get; set; } = [];
+
         public List<string> Weaknesses { get; set; } = [];
 
         public List<string> Recommendations { get; set; } = [];
@@ -36,6 +38,21 @@ public class AssessmentResult
         public string Step { get; set; } = string.Empty;
 
         public string Name { get; set; } = string.Empty;
+
+        public string Status { get; set; } = string.Empty;
+
+        public string Explanation { get; set; } = string.Empty;
+
+        public string Evidence { get; set; } = string.Empty;
+
+        public int? Page { get; set; }
+    }
+
+    public class CrossStepAssessment
+    {
+        public string FromStep { get; set; } = string.Empty;
+
+        public string ToStep { get; set; } = string.Empty;
 
         public string Status { get; set; } = string.Empty;
 
