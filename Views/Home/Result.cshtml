@@ -11,6 +11,11 @@
         new { Name = "Winning System", Result = Model.WinningSystem },
         new { Name = "Performance", Result = Model.Performance }
     };
+
+    var pageCounts = Model.DocumentAnalysis.PageCharacterCounts ?? new List<AssessmentResult.PageCharacterCount>();
+    var minCharacters = pageCounts.Count > 0 ? pageCounts.Min(x => x.CharacterCount) : 0;
+    var maxCharacters = pageCounts.Count > 0 ? pageCounts.Max(x => x.CharacterCount) : 0;
+    var averageCharacters = pageCounts.Count > 0 ? pageCounts.Average(x => x.CharacterCount) : 0d;
 }
 
 @functions {
@@ -99,6 +104,7 @@
                 </div>
             </div>
         </article>
+
         <article class="summary-card">
             <div class="summary-card-header">
                 <p class="result-card-label">RINGKASAN DOKUMEN</p>
@@ -106,6 +112,137 @@
             </div>
             <p class="summary-text">@Model.Summary</p>
         </article>
+    </section>
+
+    <section class="pdf-analysis-section" aria-labelledby="document-analysis-title">
+        <div class="section-heading-row">
+            <div>
+                <p class="result-eyebrow">DOCUMENT ANALYSIS</p>
+                <h2 id="document-analysis-title">Analisis integritas dokumen PDF</h2>
+            </div>
+            <p class="section-supporting-text">Hasil pemeriksaan halaman, karakter, anomali, dan redundansi sesuai master prompt.</p>
+        </div>
+
+        <div class="pdf-analysis-grid">
+            <article class="analysis-card page-stats-card">
+                <div class="analysis-card-header">
+                    <h3>Statistik Halaman</h3>
+                </div>
+                <div class="analysis-card-content">
+                    <dl class="analysis-stats">
+                        <div class="stat-item">
+                            <dt>Total Halaman</dt>
+                            <dd>@Model.DocumentAnalysis.TotalPagesUploaded</dd>
+                        </div>
+                        <div class="stat-item">
+                            <dt>Halaman Kosong</dt>
+                            <dd class="@(Model.DocumentAnalysis.TotalBlankPages > 0 ? "warning-value" : "")">@Model.DocumentAnalysis.TotalBlankPages halaman</dd>
+                        </div>
+                        <div class="stat-item">
+                            <dt>Karakteristik Karakter</dt>
+                            <dd>
+                                <div>Min: @minCharacters karakter</div>
+                                <div>Max: @maxCharacters karakter</div>
+                                <div>Rata-rata: @averageCharacters.ToString("F0", CultureInfo.InvariantCulture) karakter</div>
+                            </dd>
+                        </div>
+                    </dl>
+                </div>
+            </article>
+
+            @if (Model.DocumentAnalysis.BlankPageNumbers.Count > 0)
+            {
+                <article class="analysis-card anomaly-card">
+                    <div class="analysis-card-header warning-header">
+                        <h3>📄 Halaman Kosong</h3>
+                    </div>
+                    <div class="analysis-card-content">
+                        <p>Halaman kosong: @string.Join(", ", Model.DocumentAnalysis.BlankPageNumbers)</p>
+                    </div>
+                </article>
+            }
+
+            @if (Model.DocumentAnalysis.Anomalies.Count > 0)
+            {
+                <article class="analysis-card redundancy-card">
+                    <div class="analysis-card-header warning-header">
+                        <h3>⚠️ Anomali Dokumen</h3>
+                    </div>
+                    <div class="analysis-card-content">
+                        <ul class="redundancy-list">
+                            @foreach (var anomaly in Model.DocumentAnalysis.Anomalies)
+                            {
+                                <li>
+                                    <strong>Halaman @anomaly.Page</strong> · @anomaly.Type
+                                    @if (!string.IsNullOrWhiteSpace(anomaly.Excerpt))
+                                    {
+                                        <br />@anomaly.Excerpt
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(anomaly.Explanation))
+                                    {
+                                        <br /><small>@anomaly.Explanation</small>
+                                    }
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                </article>
+            }
+        </div>
+
+        @if (Model.DocumentAnalysis.RedundantContent.Count > 0)
+        {
+            <div class="page-detail-section">
+                <h3>Konten yang Terduplikasi</h3>
+                <div class="page-details-grid">
+                    @foreach (var redundancy in Model.DocumentAnalysis.RedundantContent)
+                    {
+                        <article class="page-detail-card">
+                            <div class="page-header">
+                                <h4>Halaman @string.Join(", ", redundancy.Pages)</h4>
+                            </div>
+                            <dl class="page-details">
+                                <div>
+                                    <dt>Deskripsi</dt>
+                                    <dd>@redundancy.Description</dd>
+                                </div>
+                            </dl>
+                        </article>
+                    }
+                </div>
+            </div>
+        }
+
+        @if (Model.DocumentAnalysis?.PageCharacterCounts is { Count: > 0 })
+        {
+            <div class="page-detail-section">
+                <h3>Detail Karakter Per Halaman</h3>
+                <div class="page-details-grid">
+                    @foreach (var pageDetail in Model.DocumentAnalysis.PageCharacterCounts)
+                    {
+                        <article class="page-detail-card @(pageDetail.IsBlank ? "empty-page" : "")">
+                            <div class="page-header">
+                                <h4>Halaman @pageDetail.Page</h4>
+                                @if (pageDetail.IsBlank)
+                                {
+                                    <span class="page-badge empty-badge">Kosong</span>
+                                }
+                            </div>
+                            <dl class="page-details">
+                                <div>
+                                    <dt>Karakter</dt>
+                                    <dd>@pageDetail.CharacterCount</dd>
+                                </div>
+                                <div>
+                                    <dt>Status</dt>
+                                    <dd>@(pageDetail.IsBlank ? "Blank" : "Berisi")</dd>
+                                </div>
+                            </dl>
+                        </article>
+                    }
+                </div>
+            </div>
+        }
     </section>
 
     <section class="assessment-section" aria-labelledby="assessment-table-title">

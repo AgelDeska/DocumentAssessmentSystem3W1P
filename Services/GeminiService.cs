@@ -262,10 +262,39 @@ public class GeminiService
         }
 
         ValidateScore(assessment.OverallScore, "overallScore");
+        ValidateDocumentAnalysis(assessment.DocumentAnalysis);
         ValidateCategory(assessment.WinningConcept, "winningConcept");
         ValidateCategory(assessment.WinningTeam, "winningTeam");
         ValidateCategory(assessment.WinningSystem, "winningSystem");
         ValidateCategory(assessment.Performance, "performance");
+    }
+
+    private static void ValidateDocumentAnalysis(AssessmentResult.DocumentAnalysisResult documentAnalysis)
+    {
+        if (documentAnalysis is null)
+        {
+            throw new InvalidOperationException("Gemini assessment is missing documentAnalysis.");
+        }
+
+        if (documentAnalysis.TotalPagesUploaded <= 0)
+        {
+            throw new InvalidOperationException(
+                $"Gemini assessment documentAnalysis.totalPagesUploaded must be > 0, but got {documentAnalysis.TotalPagesUploaded}.");
+        }
+
+        if (documentAnalysis.PageCharacterCounts is null || documentAnalysis.PageCharacterCounts.Count == 0)
+        {
+            throw new InvalidOperationException(
+                "Gemini assessment documentAnalysis.pageCharacterCounts is empty. " +
+                "Expected at least one entry per page in the PDF.");
+        }
+
+        if (documentAnalysis.PageCharacterCounts.Count != documentAnalysis.TotalPagesUploaded)
+        {
+            throw new InvalidOperationException(
+                $"Gemini assessment documentAnalysis.pageCharacterCounts count ({documentAnalysis.PageCharacterCounts.Count}) " +
+                $"does not match totalPagesUploaded ({documentAnalysis.TotalPagesUploaded}).");
+        }
     }
 
     private static void ValidateCategory(AssessmentResult.AssessmentCategory category, string categoryName)
@@ -300,20 +329,25 @@ public class GeminiService
         }
     }
 
+
     private const string MasterPrompt = """
+  
         Anda adalah AI assessor profesional untuk 3W1P Document Assessment System.
         Tugas Anda: membaca SELURUH dokumen PDF yang diupload user, lalu menilainya
         berdasarkan Master Framework 3W1P di bawah, dan mengeluarkan HANYA satu
         objek JSON sesuai struktur di Bagian 8.
 
-        Ikuti dokumen ini sebagai SATU alur kerja berurutan (Bagian 1 -> 8). Jangan
-        melompat, jangan menilai sebelum membaca selesai, jangan menghitung skor
-        kategori sebelum seluruh 17 checklist selesai diperiksa. Skor akhir yang
-        Anda hasilkan WAJIB konsisten dengan status checklist individual: sistem
-        ini bersifat transparan, sehingga setiap angka skor harus bisa ditelusuri
-        balik ke checklist mana saja yang PASS/PARTIAL/FAIL/NOT_FOUND yang
-        menghasilkannya. Skor bukan opini holistik, tapi hasil langsung dari
-        prosedur di Bagian 7.
+        Ikuti dokumen ini sebagai SATU alur kerja berurutan (Bagian 1 -> 2 -> 2B ->
+        3 -> 4 -> ... -> 9). Jangan melompat, jangan menilai checklist di Bagian 4
+        sebelum membaca seluruh dokumen DAN menyelesaikan analisis integritas
+        dokumen di Bagian 2B, dan jangan menghitung skor kategori sebelum seluruh
+        17 checklist selesai diperiksa. Skor akhir yang Anda hasilkan WAJIB
+        konsisten dengan status checklist individual: sistem ini bersifat
+        transparan, sehingga setiap angka skor harus bisa ditelusuri balik ke
+        checklist mana saja yang PASS/PARTIAL/FAIL/NOT_FOUND yang menghasilkannya,
+        dan setiap klaim tentang kondisi fisik dokumen (jumlah halaman, halaman
+        kosong, anomali, redundansi) harus bisa ditelusuri balik ke Bagian 2B.
+        Skor bukan opini holistik, tapi hasil langsung dari prosedur di Bagian 7.
 
         ---
 
@@ -355,6 +389,83 @@ public class GeminiService
 
         ---
 
+        BAGIAN 2B - ANALISIS INTEGRITAS DOKUMEN (WAJIB, SEBELUM BAGIAN 4)
+
+        Selain menilai isi Step 1-9, Anda WAJIB melakukan analisis integritas fisik
+        dokumen berikut. Kerjakan bersamaan dengan pembacaan halaman di Bagian 2,
+        dan catat hasilnya ke field "documentAnalysis" di JSON (lihat Bagian 8).
+        Analisis ini WAJIB selesai sebelum menilai checklist di Bagian 4, karena
+        temuannya bisa memengaruhi keabsahan evidence suatu checklist (lihat
+        penutup Bagian 3).
+
+        1. Jumlah halaman
+
+           Hitung jumlah total halaman yang benar-benar ada di file PDF yang
+           diupload user (totalPagesUploaded). Jangan menebak atau membulatkan -
+           hitung berdasarkan jumlah halaman aktual file.
+
+        2. Halaman kosong
+
+           Untuk setiap halaman, tentukan apakah halaman tersebut "kosong" (blank):
+           tidak memiliki konten apa pun yang bisa diperiksa - tidak ada teks
+           terbaca, tidak ada gambar, diagram, tabel, foto, atau elemen visual lain
+           (halaman putih/nyaris putih, atau halaman pemisah tanpa isi).
+
+           Halaman yang berisi gambar/diagram/tabel TANPA teks BUKAN halaman
+           kosong - tetap dihitung berisi (isBlank: false), karena elemen visual
+           adalah evidence resmi (Bagian 2 poin 5). Catat totalBlankPages dan
+           blankPageNumbers (daftar nomor halaman yang benar-benar kosong).
+
+        3. Jumlah karakter per halaman
+
+           Untuk setiap halaman, catat estimasi jumlah karakter teks yang benar-
+           benar terbaca pada halaman tersebut (characterCount) - berdasarkan teks
+           yang teridentifikasi saat membaca/meninjau halaman itu, bukan karangan.
+           Halaman yang hanya berisi gambar/diagram tanpa teks terbaca dicatat
+           characterCount: 0 (namun isBlank tetap false jika ada elemen visual).
+           Setiap halaman (1 sampai totalPagesUploaded) WAJIB punya satu entry di
+           pageCharacterCounts - jangan ada halaman yang terlewat.
+
+        4. Deteksi anomali konten
+
+           Selama membaca, aktif mencari indikasi konten yang bermasalah/anomali,
+           antara lain:
+           - Placeholder atau dummy text yang belum diganti (mis. "lorem ipsum",
+             "teks contoh di sini", "[isi bagian ini]", judul template yang masih
+             generik dan tidak disesuaikan dengan tema dokumen).
+           - Teks yang jelas tidak relevan atau tidak nyambung dengan konteks
+             Step/Deliverable pada halaman tersebut (indikasi salah tempel dari
+             dokumen lain, potongan kalimat yang terputus tanpa konteks).
+           - Karakter rusak/tidak terbaca dalam jumlah signifikan pada satu halaman
+             (indikasi hasil scan/OCR/encoding bermasalah).
+
+           Untuk SETIAP temuan, catat ke "anomalies": page, type (label singkat,
+           mis. "Placeholder/Lorem Ipsum", "Teks tidak relevan", "Karakter rusak"),
+           excerpt (kutipan asli dari dokumen, singkat, secukupnya untuk
+           menunjukkan masalahnya - bukan karangan), dan explanation (kenapa ini
+           dianggap anomali). Jika tidak ditemukan anomali sama sekali, "anomalies"
+           dikosongkan ([]) - jangan mengarang temuan yang tidak benar-benar ada.
+
+        5. Deteksi redundansi antar halaman
+
+           Periksa apakah ada blok teks, paragraf, atau tabel yang identik atau
+           nyaris identik muncul berulang di beberapa halaman berbeda secara
+           mencurigakan (indikasi copy-paste konten tanpa penyesuaian, bukan
+           pengulangan yang wajar). Header/footer standar, nomor halaman,
+           watermark, atau logo perusahaan yang memang berulang di setiap halaman
+           TIDAK dihitung sebagai redundansi.
+
+           Untuk SETIAP temuan, catat ke "redundantContent": pages (daftar nomor
+           halaman yang terlibat) dan description (apa yang diduplikasi dan kenapa
+           ini dianggap redundan). Jika tidak ditemukan, "redundantContent"
+           dikosongkan ([]).
+
+        Seluruh hasil Bagian 2B ini WAJIB dicatat di field "documentAnalysis" pada
+        JSON output (lihat Bagian 8) - lengkap, sesuai jumlah halaman sebenarnya,
+        dan berbasis temuan nyata, bukan estimasi kasar atau karangan.
+
+        ---
+
         BAGIAN 3 - FILOSOFI PENILAIAN
 
         ADA =/= OTOMATIS PASS.
@@ -370,6 +481,15 @@ public class GeminiService
         "root cause", "SOP", "PICA", "5W2H", "target", "improvement" - kata/istilah
         bukan bukti bahwa requirement terpenuhi. Nilai makna, isi, hubungan,
         evidence, dan validitasnya, bukan keberadaan istilahnya.
+
+        Jika evidence yang dipakai untuk mendukung status PASS suatu checklist
+        ternyata termasuk anomali yang tercatat di Bagian 2B (placeholder/dummy
+        text, teks tidak relevan, karakter rusak) atau merupakan bagian dari
+        konten redundan yang hanya ditempel ulang dari halaman lain tanpa isi
+        baru, evidence tersebut TIDAK SAH untuk mendukung PASS - turunkan status
+        checklist terkait ke PARTIAL, FAIL, atau NOT_FOUND sesuai kondisi
+        sebenarnya, dan jelaskan keterkaitannya di "explanation" checklist
+        tersebut.
 
         ---
 
@@ -609,7 +729,6 @@ public class GeminiService
 
         Kembalikan HANYA JSON valid - tanpa markdown, code fence, komentar,
         atau teks apa pun di luar JSON.
-        WAJIB DENGAN FORMAT DI BAWAH INI
 
         {
           "documentName": "",
@@ -645,6 +764,33 @@ public class GeminiService
             "checklist": [],
             "weaknesses": [],
             "recommendations": []
+          },
+
+          "documentAnalysis": {
+            "totalPagesUploaded": 0,
+            "totalBlankPages": 0,
+            "blankPageNumbers": [],
+            "pageCharacterCounts": [
+              {
+                "page": 0,
+                "characterCount": 0,
+                "isBlank": false
+              }
+            ],
+            "anomalies": [
+              {
+                "page": 0,
+                "type": "",
+                "excerpt": "",
+                "explanation": ""
+              }
+            ],
+            "redundantContent": [
+              {
+                "pages": [],
+                "description": ""
+              }
+            ]
           }
         }
 
@@ -665,6 +811,22 @@ public class GeminiService
         - evidence: kutipan/rujukan spesifik dari PDF, atau "" jika tidak ada.
         - page: nomor halaman jika bisa diverifikasi, atau null.
 
+        documentAnalysis (WAJIB, lihat Bagian 2B) - field tambahan di level
+        dokumen, terpisah dari 4 kategori penilaian, TIDAK mengubah struktur field
+        lain yang sudah ada:
+        - totalPagesUploaded: jumlah halaman aktual file yang diupload.
+        - totalBlankPages & blankPageNumbers: jumlah dan nomor halaman yang
+          benar-benar kosong (lihat definisi di Bagian 2B poin 2).
+        - pageCharacterCounts: array berisi satu entry per halaman (1 sampai
+          totalPagesUploaded) - page, characterCount (estimasi karakter teks
+          terbaca), isBlank. Tidak boleh ada halaman yang terlewat.
+        - anomalies: daftar temuan konten bermasalah (placeholder/dummy text,
+          teks tidak relevan, karakter rusak) - page, type, excerpt (kutipan asli
+          dari dokumen), explanation. Kosongkan ([]) jika tidak ditemukan.
+        - redundantContent: daftar temuan konten yang diduplikasi mentah antar
+          halaman - pages (daftar nomor halaman terlibat), description. Kosongkan
+          ([]) jika tidak ditemukan.
+
         reason (WAJIB, lihat C4): sebutkan jumlah checklist PASS vs non-PASS di
         kategori ini dan alasan singkat kenapa skor berada di band tersebut.
 
@@ -674,7 +836,7 @@ public class GeminiService
 
         Recommendations: spesifik, actionable, dan merujuk Step & Deliverable
         terkait - bukan generik.
- 
+
         - Jika kategori ini punya weakness: recommendation WAJIB menjawab
           weakness tersebut secara langsung.
         - Jika kategori ini TIDAK punya weakness tapi skornya BELUM masuk band
@@ -725,6 +887,15 @@ public class GeminiService
         9. Weaknesses & recommendations berbasis evidence yang benar-benar
            ditemukan, bukan template generik.
         10. Output adalah JSON valid saja, tanpa teks lain sebelum/sesudah.
+        11. documentAnalysis (Bagian 2B) sudah lengkap: totalPagesUploaded sesuai
+            jumlah halaman asli file, pageCharacterCounts punya entry untuk SETIAP
+            halaman tanpa terlewat, dan blankPageNumbers konsisten dengan definisi
+            halaman kosong (bukan halaman bergambar tanpa teks yang tetap dihitung
+            berisi).
+        12. anomalies dan redundantContent hanya diisi berdasarkan temuan nyata di
+            dokumen (bukan karangan). Jika temuan ini berada pada halaman yang
+            menjadi evidence suatu checklist, pengaruhnya terhadap status
+            checklist tersebut sudah diterapkan sesuai penutup Bagian 3.
 
         Prinsip akhir: lebih baik memberi nilai rendah yang bisa dibuktikan
         daripada nilai tinggi yang tidak bisa dibuktikan. Jika evidence tidak ada
@@ -732,7 +903,8 @@ public class GeminiService
         Jika hubungan antar-Step tidak jelas - jangan beri PASS. Jika terdapat
         satu saja checklist non-PASS - OverallScore tidak boleh >= 4.00. Skor
         5 hanya untuk dokumen yang benar-benar terbukti layak jadi benchmark,
-        bukan dokumen yang "terlihat lengkap".
-
+        bukan dokumen yang "terlihat lengkap". Prinsip yang sama berlaku untuk
+        documentAnalysis: jangan mengarang jumlah halaman, halaman kosong, jumlah
+        karakter, anomali, atau redundansi yang tidak benar-benar ada di dokumen.
         """;
 }
