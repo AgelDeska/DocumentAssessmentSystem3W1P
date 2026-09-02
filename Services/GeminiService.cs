@@ -236,18 +236,61 @@ public class GeminiService
     {
         try
         {
-            var assessment = JsonSerializer.Deserialize<AssessmentResult>(
-                json,
-                new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                });
+            if (string.IsNullOrWhiteSpace(json))
+            {
+                throw new InvalidOperationException(
+                    "Gemini returned an empty assessment response.");
+            }
 
-            return assessment ?? throw new InvalidOperationException("Gemini returned an empty assessment JSON.");
+            json = RemoveMarkdownCodeFence(json.Trim());
+
+            var options = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            };
+
+            // Jika Gemini mengembalikan JSON Array
+            if (json.StartsWith("["))
+            {
+                var assessments = JsonSerializer.Deserialize<List<AssessmentResult>>(
+                    json,
+                    options);
+
+                if (assessments is null || assessments.Count != 1)
+                {
+                    throw new InvalidOperationException(
+                        $"Gemini returned {assessments?.Count ?? 0} assessments. Expected exactly 1.");
+                }
+
+                return assessments[0];
+            }
+
+            // Jika Gemini mengembalikan JSON Object
+            if (json.StartsWith("{"))
+            {
+                var assessment = JsonSerializer.Deserialize<AssessmentResult>(
+                    json,
+                    options);
+
+                if (assessment is null)
+                {
+                    throw new InvalidOperationException(
+                        "Gemini returned an empty assessment JSON.");
+                }
+
+                return assessment;
+            }
+
+            throw new InvalidOperationException(
+                $"Gemini returned an unsupported JSON format. " +
+                $"Response starts with: {json[..Math.Min(json.Length, 100)]}");
         }
         catch (JsonException exception)
         {
-            throw new InvalidOperationException("Gemini returned assessment JSON that does not match AssessmentResult.", exception);
+            throw new InvalidOperationException(
+                $"Gemini JSON could not be converted to AssessmentResult. " +
+                $"JSON: {json[..Math.Min(json.Length, 500)]}",
+                exception);
         }
     }
 
